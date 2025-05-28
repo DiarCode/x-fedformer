@@ -1,0 +1,13 @@
+flwr==1.18.0
+lime==0.2.0.1
+matplotlib==3.10.3
+numpy==2.2.6
+opacus==1.5.3
+pandas==2.2.3
+plotly==6.1.1
+rich==14.0.0
+scikit_learn==1.6.1
+scipy==1.15.3
+seaborn==0.13.2
+shap==0.47.2
+torch==2.7.0
