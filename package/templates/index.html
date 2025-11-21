@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>X-FedFormer Prediction Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="container header-content">
+        <h1 class="logo">X-FedFormer AI</h1>
+        <nav class="main-nav">
+          <ul>
+            <li><a href="/" class="active">Dashboard</a></li>
+            <li><a href="/clients">Clients</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main container">
+      <section class="card-section global-metrics-section">
+        <h2 class="section-title">Global Federated Learning Metrics</h2>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <h3 class="metric-title">Latest Round</h3>
+            <p id="latest-round-display" class="metric-value">
+              {{ latest_round if latest_round is not none else 'N/A' }}
+            </p>
+          </div>
+          <div class="metric-card">
+            <h3 class="metric-title">Avg Client Fit Loss</h3>
+            <p id="avg-fit-loss-display" class="metric-value">Loading...</p>
+          </div>
+          <div class="metric-card">
+            <h3 class="metric-title">Avg Eval Loss</h3>
+            <p id="avg-eval-loss-display" class="metric-value">Loading...</p>
+          </div>
+          <div class="metric-card">
+            <h3 class="metric-title">Avg MAE (Eval)</h3>
+            <p id="avg-mae-display" class="metric-value">Loading...</p>
+          </div>
+          {% if DP_ENABLED %}
+          <div class="metric-card">
+            <h3 class="metric-title">Max Epsilon</h3>
+            <p id="max-epsilon-display" class="metric-value">Loading...</p>
+          </div>
+          {% endif %}
+        </div>
+        <div class="chart-area">
+          <canvas id="overallMetricsChart"></canvas>
+        </div>
+      </section>
+
+      <section class="card-section prediction-section">
+        <h2 class="section-title">Smart City Transport Predictions</h2>
+
+        <div class="filter-controls">
+          <div class="filter-group">
+            <label for="city-select" class="filter-label">City:</label>
+            <select id="city-select" class="styled-select">
+              {% for city in cities %}
+              <option value="{{ city }}" {% if loop.first %}selected{% endif %}>
+                {{ city }}
+              </option>
+              {% else %}
+              <option value="">No cities with predictions</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="route-select" class="filter-label">Route:</label>
+            <select id="route-select" class="styled-select">
+              <option value="all">All Routes</option>
+              {% for route in initial_routes %}
+              <option value="{{ route }}">{{ route }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="zone-select" class="filter-label">Zone:</label>
+            <select id="zone-select" class="styled-select">
+              <option value="all">All Zones</option>
+              {% for zone in initial_zones %}
+              <option value="{{ zone }}">{{ zone }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-group date-filters">
+            <label for="prediction-datetime" class="filter-label"
+              >Prediction Date & Time:</label
+            >
+            <input
+              type="datetime-local"
+              id="prediction-datetime"
+              class="styled-input"
+            />
+          </div>
+
+          <button id="apply-filters-btn" class="primary-button">
+            Get Predictions
+          </button>
+        </div>
+
+        <div id="prediction-summary-card" class="summary-card hidden">
+          <h3>Overall Prediction Summary</h3>
+          <div class="summary-content">
+            <div class="summary-item">
+              <span class="summary-value" id="overall-predicted"
+                >Loading...</span
+              >
+              <span class="summary-label">Predicted Passengers</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-value" id="overall-actual">Loading...</span>
+              <span class="summary-label">Actual Passengers</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-value" id="overall-accuracy"
+                >Loading...</span
+              >
+              <span class="summary-label">Accuracy</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-value" id="busy-count">N/A</span>
+              <span class="summary-label">Busy Combinations</span>
+            </div>
+          </div>
+          <p class="summary-note">
+            Based on selected filters. Click a card for detailed chart.
+          </p>
+        </div>
+
+        <div id="prediction-results-container" class="prediction-cards-grid">
+          <p class="initial-message">
+            Select your criteria and click "Get Predictions" to see insights.
+          </p>
+        </div>
+
+        <div id="detail-chart-modal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 id="modal-chart-title"></h2>
+              <span class="close-button">&times;</span>
+            </div>
+            <div class="modal-body">
+              <div class="modal-metrics">
+                <div class="metric-item">
+                  <span class="label">Predicted:</span>
+                  <span class="value" id="modal-predicted-value"></span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Actual:</span>
+                  <span class="value" id="modal-actual-value"></span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">MAE:</span>
+                  <span class="value" id="modal-mae-value"></span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Accuracy:</span>
+                  <span class="value" id="modal-accuracy-value"></span>
+                </div>
+              </div>
+              <canvas id="modalChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+  </body>
+</html>

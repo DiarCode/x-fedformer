@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="clients-section">
+    <h2>Client Status (Latest Round)</h2>
+    {% if clients %}
+    <div class="client-cards-container">
+        {% for client in clients %}
+        <div class="client-card">
+            <h3>{{ client.client_id }}</h3>
+            <p><strong>Round:</strong> {{ client.round }}</p>
+            <p><strong>Training Samples:</strong> {{ client.num_examples }}</p>
+            <p><strong>Fit Loss:</strong> {{ "%.4f" | format(client.fit_loss) if client.fit_loss is not none else 'N/A' }}</p>
+            <p><strong>Eval Loss:</strong> {{ "%.4f" | format(client.eval_loss) if client.eval_loss is not none else 'N/A' }}</p>
+            <p><strong>MAE:</strong> {{ "%.4f" | format(client.mae) if client.mae is not none else 'N/A' }}</p>
+            {% if DP_ENABLED %}
+            <p><strong>Epsilon:</strong> {{ "%.2f" | format(client.epsilon) if client.epsilon is not none else 'N/A' }}</p>
+            {% endif %}
+            <p><strong>Last Updated:</strong> {{ client.timestamp.split('T')[0] }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No client data available yet. Please run FL clients.</p>
+    {% endif %}
+</section>
+{% endblock %}
